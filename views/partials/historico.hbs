@@ -1,0 +1,21 @@
+<div>
+     <h2 style="color:crimson;">Historial</h2>
+     <button class="btn btn-success mt-3 mb-5">Enviar</button>
+        {{#if productos}}        
+            <div class="table-responsive">
+                <table class="table table-dark">
+                    <tr style="color: yellow;"> <th>Nombre</th> <th>precio</th> <th> imagen</th> </tr>
+                    {{#each productos}} 
+                    <tr id="productossocket">
+                        <td>{{nombre}}</td>
+                        <td>{{precio}}</td>
+                        <td><img width="30px" src="{{imagen}}" alt=""></td>
+                    </tr>
+                    {{/each}}
+
+                </table>
+            </div>
+            {{else}}
+             <h3 class="alert alert-warning"> no se encuentra producto </h3>
+        {{/if}}    
+ </div>
