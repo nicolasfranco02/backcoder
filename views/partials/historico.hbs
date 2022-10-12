@@ -1,6 +1,11 @@
 <div>
-     <h2 style="color:crimson;">Historial</h2>
-     <button class="btn btn-success mt-3 mb-5">Enviar</button>
+     <div class="jumbotron">
+    
+    <h1 id="loginUsuarios" > bienvenido {{usuarionNombre}} </h1>
+    <a href="/logout"><button class="btn btn-success mt-3 mb-5" onclick="href()" id="deslogueo" >Deslogearse</button></a>
+    </div>
+</div>
+    
         {{#if productos}}        
             <div class="table-responsive">
                 <table class="table table-dark">
@@ -12,10 +17,11 @@
                         <td><img width="30px" src="{{imagen}}" alt=""></td>
                     </tr>
                     {{/each}}
-
+ 
                 </table>
-            </div>
+            </div> <button class="btn btn-success mt-3 mb-5" onclick="" >Enviar</button>
             {{else}}
-             <h3 class="alert alert-warning"> no se encuentra producto </h3>
+           
+             
         {{/if}}    
  </div>

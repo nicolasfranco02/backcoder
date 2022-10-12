@@ -1,4 +1,5 @@
 
+
 const socket = io();
 
 const formularioProductos = document.getElementById(' formprod')
@@ -93,5 +94,44 @@ function chatLista(mensaje) {
 document.querySelector('#chathistorial').innerHTML = msj
 
 
+/*----------------- login-----------------------*/
 
+/*const usuarioLogin =  document.querySelector('#usuarioLOGIN').value;
+const formulario = document.getElementById('forprod').value;
+const inputUser = document.querySelector('#ingresar').value
+const loginUsuarios = document.querySelector('#loginUsuarios')
+console.log (usuarioLogin)
+
+
+
+ /*socket.on("renderUsuario", dataUsuario =>{
+    console.log( `usuario`, dataUsuario.MongoSTore)
+    render(dataUsuario.MongoSTore);
+  });
+const envioUsuario = ()=>{
+    const envionombre =usuarioLogin
+    loginUsuarios.innerHTML = envioUsuario
+
+}
+
+
+function render(usuarioLogin) {
+    let html = usuarioLogin.map( (elem)=> {
+        return `<div> <h2>${elem.usuario}</h2> </div>`;         
+      }).join('<br>')
+      console.log(html);
+      console.log(renderUsuario);
+  
+    document.getElementById("loginUsuarios").innerHTML = html;
+  }
+  console.log(render())
+ 
+
+   inputUser.addEventListener('submit', e =>{
+    e.preventDefault()
+   console.log('hola mundo ')
+
+    const usuarioLog = document.querySelector('#usuarioLOGIN').value;
+    return usuarioLog
+     })*/
 
