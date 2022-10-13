@@ -89,33 +89,32 @@ faker.locale = 'es'
 
 /*rutas */
 app.get('/login', (req, res )=>{
-    
-   const usuarionNombre = req.query
+
+    res.render( 'formulario.hbs'  )
+})
+app.post('/login', (req, res) => {
+    const usuarionNombre = req.body.usuarioLOGIN
  console.log( usuarionNombre)
     req.session.user = usuarionNombre;
     req.session.admin = true;
- 
- 
-    res.render( 'formulario.hbs', {usuarionNombre}  )
+    
+    //res.render('',{usuarionNombre} );
+  res.redirect('/api/productos-test')
 })
-/*app.post('/login', (req, res) => {
-    const nombreUsua= req.body.usuarioLOGIN
-    res.redirect('/api/productos-test',{nombreUsua} );
-})*/
 app.get( '/logout', (req, res) => {
 
     req.session.destroy(err=>{
         if (err) {
             res.json({err})
         } else {
-            //res.send(`cerraste la sesion`)
+            
             res.render('logout.hbs')
         }
     })})
 
 
 app.get('/api/productos-test',aut, async (req, res)=>{
-   
+ 
    const cantidad = 5
    const productos =[]
    for (let i=1; i<=cantidad; i++) {    
@@ -123,8 +122,8 @@ app.get('/api/productos-test',aut, async (req, res)=>{
         id :1,
         nombre: faker.commerce.product(),
         precio: faker.commerce.price(),
-        imagen: `${faker.image.imageUrl()}`
-          
+        imagen: `${faker.image.imageUrl()}`,
+        
     }
     productos.push(produc);}
       
