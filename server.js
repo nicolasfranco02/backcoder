@@ -7,14 +7,60 @@ import exphbs from 'express-handlebars';
 import {ProductosDAo} from './src/daos/productos/indexProductos.js';
 import { CarritoDAO } from './src/daos/carrito/inexCarrito.js';
 import { faker } from '@faker-js/faker';
-import session from 'express-session';  
+import session, { Cookie } from 'express-session';  
 import dotenv from 'dotenv';
 import connectMOngo from 'connect-mongo';
+import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
+import { normalize , schema } from 'normalizr';
+import {usuarioMongo} from './src/daos/session/sesiones.js';
 
-
-
+import {config} from './src/utils/confirfMongo.js'
 
 dotenv.config()
+
+const UsuarioBD = [];
+
+
+/*----------------- passport / bbcrypt------------*/
+import passport from 'passport';
+import {Strategy} from "passport-local";
+
+const  LocalStrategy = Strategy;
+
+passport.use (new LocalStrategy(
+    async function(username , password, done){
+        const usuarioCreado = await  usuarioMongo.find(usuario => usuario.nombre = username  );
+        if (!usuarioCreado){
+            return done(null, false);
+        }else {
+            const match = await verifyPass(usuarioCreado, password);
+            if(!match){
+                return done(null, false);
+            }
+            return done (null ,  usuarioCreado);
+        }
+    }
+))
+
+passport.serializeUser((usuario , done) => {
+    done( null, usuario.nombre)
+})
+passport.deserializeUser((nombre, done) => {
+    const usuarioCreado = usuarioMongo.find(usuario => usuario.nombre == nombre);
+    done (null ,usuarioCreado);
+});
+
+async function generateHashPassword(password){
+    const hashPassword = await bcrypt.hash(password, 10);
+    return hashPassword;
+}
+async function verifyPass(usuario, password) {
+    const match = await bcrypt.compare(password, usuario.password);
+    return match;
+}
+
+
 /* instancia server*/
 const app= express();
 const httpServer = new HttpServer(app);
@@ -39,17 +85,37 @@ const MongoSTore= connectMOngo.create({
 app.use(session({
     store: MongoSTore,
     secret: process.env.SECRET_KEY,
-    resave: true,
-    saveUninitialized: true
+    resave: false,
+    saveUninitialized: false,
+    Cookie:{
+        maxAge:10000
+    }
 })) 
 
-function aut (req, res, next) {
-    if (req.session?.user && req.session?.admin){
-        return next();
-    }
-    return res.status(401).send(`eror no autorizado`)
-}
+/*------------ mongo-----------*/
+const strConn = `mongodb://${config.db.host}:${config.db.port}/${config.db.dbName}`
+async function MongoBaseDatos (){
+    try{
+        
+        const conn = await mongoose.connect(strConn, config.db.options);
+        console.log( `conectados en mongo`)
 
+
+    }
+    catch(error){
+        console.log(error)
+    }
+}
+MongoBaseDatos() 
+function aut (req, res, next) {
+    if (req.isAuthenticated()) {
+        next ()
+}else {
+    res.redirect( '/login')
+}
+}
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 /* middlewares*/
@@ -69,7 +135,7 @@ app.set('views', './views');
 app.set('view engine','hbs');
 
 /*----------normalizacion------- */
-import { normalize , schema } from 'normalizr';
+
 
 
 // esquema autor
@@ -88,29 +154,48 @@ const normalizado = (mensajeconid) =>normalize(mensajeconid, schemaMensajesEnvia
 faker.locale = 'es'
 
 /*rutas */
+
+app.get('/' , (req, res) =>{
+    res.redirect('/login')
+})
+
+app.get('/register', (req, res )=>{
+
+    res.render( 'formularioinicio.hbs'  )
+})
+
+
+app.post('/register',async (req, res )=>{
+  const {nombre , password} = req.body;
+
+  const nuevoUsuario = usuarioMongo.find(usuario => usuario.nombre == nombre);
+  
+  if (nuevoUsuario){
+    res.redirect('/register-error')
+  }else {
+    await usuarioMongo.create({
+        nombre,
+        password: await generateHashPassword(password)
+    })
+    res.redirect('/login')
+  }
+})
+
+app.get('/register-error', (req, res) => {
+res.render('errorsesion.hbs')
+})
+
+
 app.get('/login', (req, res )=>{
 
-    res.render( 'formulario.hbs'  )
+    res.render( 'login.hbs'  )
 })
-app.post('/login', (req, res) => {
-    const usuarionNombre = req.body.usuarioLOGIN
- console.log( usuarionNombre)
-    req.session.user = usuarionNombre;
-    req.session.admin = true;
-    
-    //res.render('',{usuarionNombre} );
-  res.redirect('/api/productos-test')
-})
-app.get( '/logout', (req, res) => {
+app.post('/login', passport.authenticate('local', {successRedirect:'/api/productos-test', failureMessage:'/login'}))
 
-    req.session.destroy(err=>{
-        if (err) {
-            res.json({err})
-        } else {
-            
-            res.render('logout.hbs')
-        }
-    })})
+app.get('/login-error', (req, res) => {
+        res.render('errorsesion.hbs');
+    })
+    
 
 
 app.get('/api/productos-test',aut, async (req, res)=>{
@@ -136,13 +221,12 @@ app.post('/personas', aut, async (req, res)=>{
     res.redirect('/api/productos-test');
 });
 
-/* servidores */
-const PORT = process.env.PORT
-const  server = httpServer.listen(PORT, () =>{
-    console.log(`servidor ${server.address().port}`)
-});
+app.get('/logout', (req, res)=> {
+    req.logOut(err => {
+        res.redirect('/');
+    });
+})
 
-server.on('error', err=>console.log(`error en servidor:${err}`));
 
 /*-------------------socket----------------*/
 io.on('connection', async socket=> {
@@ -171,13 +255,13 @@ socket.on('mensajeNuevo', async mensaje =>{
         return normalizados
     }
 
-
-    /*--- loginUsuarios-----*/
-
-    /*socket.emit("renderUsuario",{ MongoSTore});
-
-    socket.on("usuarioLog", usuarioLog=> {
-        renderUsuario.push(usuarioLog);
-        io.sockets.emit("renderUsuario", {MongoSTore});
-    })*/
    });
+
+
+   /* servidores */
+const PORT = process.env.PORT
+const  server = httpServer.listen(PORT, () =>{
+    console.log(`servidor ${server.address().port}`)
+});
+
+server.on('error', err=>console.log(`error en servidor:${err}`));
