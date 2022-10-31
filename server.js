@@ -7,14 +7,14 @@ import exphbs from 'express-handlebars';
 import {ProductosDAo} from './src/daos/productos/indexProductos.js';
 import { CarritoDAO } from './src/daos/carrito/inexCarrito.js';
 import { faker } from '@faker-js/faker';
-import session, { Cookie } from 'express-session';  
+import session from 'express-session';  
 import dotenv from 'dotenv';
 import connectMOngo from 'connect-mongo';
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
 import { normalize , schema } from 'normalizr';
 import {usuarioMongo} from './src/daos/session/sesiones.js';
-
+import { fork } from 'child_process';
 import {config} from './src/utils/confirfMongo.js'
 
 dotenv.config()
@@ -22,9 +22,17 @@ dotenv.config()
 const UsuarioBD = [];
 
 
+
+/*------------ fork------*/
+const forkedProcess = fork('./src/forkCalculo.js')
+
 /*----------------- passport / bbcrypt------------*/
 import passport from 'passport';
 import {Strategy} from "passport-local";
+import minimist from 'minimist';
+import { ConnectionPoolClosedEvent } from 'mongodb';
+
+
 
 const  LocalStrategy = Strategy;
 
@@ -88,7 +96,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     Cookie:{
-        maxAge:10000
+        maxAge:500
     }
 })) 
 
@@ -154,6 +162,41 @@ const normalizado = (mensajeconid) =>normalize(mensajeconid, schemaMensajesEnvia
 faker.locale = 'es'
 
 /*rutas */
+app.get('/info', (req, res) =>{ 
+
+const datos ={ 
+    ruta :process.cwd(),
+    idProcess:process.pid,
+    versionNode : process.version,
+    nombreProcess :process.title,
+    sistemaOperativo: process.platform
+
+}
+    res.render( 'listadoinfo.hbs',{datos})
+})
+
+
+
+
+
+
+app.get('/api/random', (req,res)=>{
+const cantidadvalor = req.query.cant
+            forkedProcess.send(cantidadvalor)
+     
+        forkedProcess.on('message', function (calculorandom)  {
+           
+            console.log(`numeros aleatorios` ,calculorandom);
+         
+           
+            })
+    res.send( 'segundo plano')
+        });
+    
+
+
+
+
 
 app.get('/' , (req, res) =>{
     res.redirect('/login')
@@ -169,7 +212,6 @@ app.post('/register',async (req, res )=>{
   const {nombre , password} = req.body;
 
   const nuevoUsuario = usuarioMongo.find(usuario => usuario.nombre == nombre);
-  
   if (nuevoUsuario){
     res.redirect('/register-error')
   }else {
@@ -258,9 +300,12 @@ socket.on('mensajeNuevo', async mensaje =>{
    });
 
 
+   let options= { alias:{modo: 'm', p:'puerto', d: 'debug'} , default :{ puerto :'8080'}};
+   let args = minimist(process.argv.slice(2), options)
+
    /* servidores */
 const PORT = process.env.PORT
-const  server = httpServer.listen(PORT, () =>{
+const  server = httpServer.listen(args.p, () =>{
     console.log(`servidor ${server.address().port}`)
 });
 
