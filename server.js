@@ -2,7 +2,7 @@
 import express from 'express';
 import   {Server as HttpServer } from 'http';
 import  { Server as IOServer} from 'socket.io'
-import path from 'path'
+import path, { parse } from 'path'
 import exphbs from 'express-handlebars';
 import {ProductosDAo} from './src/daos/productos/indexProductos.js';
 import { CarritoDAO } from './src/daos/carrito/inexCarrito.js';
@@ -169,7 +169,8 @@ const datos ={
     idProcess:process.pid,
     versionNode : process.version,
     nombreProcess :process.title,
-    sistemaOperativo: process.platform
+    sistemaOperativo: process.platform,
+    procesoNum : process.pid
 
 }
     res.render( 'listadoinfo.hbs',{datos})
@@ -300,13 +301,15 @@ socket.on('mensajeNuevo', async mensaje =>{
    });
 
 
-   let options= { alias:{modo: 'm', p:'puerto', d: 'debug'} , default :{ puerto :'8080'}};
-   let args = minimist(process.argv.slice(2), options)
-
+   //let options= { alias:{modo: 'm', p:'puerto', d: 'debug'}, default :{ puerto :'8080'}};
+   //let args = minimist(process.argv[2], options)
+//|| 8080;
+const PORT = parseInt(process.argv[2]) || 8080;
    /* servidores */
-const PORT = process.env.PORT
-const  server = httpServer.listen(args.p, () =>{
+
+const  server = httpServer.listen(PORT, () =>{
     console.log(`servidor ${server.address().port}`)
+    console.log(`servidor ${server.address().port}, pid ${process.pid}`)
 });
 
 server.on('error', err=>console.log(`error en servidor:${err}`));

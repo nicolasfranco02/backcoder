@@ -1,0 +1,48 @@
+pm2 
+modo closter 
+iniciar servidor :pm2 start server.js --name="cluster" --watch -i max -- 8080
+
+
+
+
+modo fork 
+iniciar servidor:pm2 start server.js --name="servidorr2" --watch -- 8080
+pm2 list (listar los pid levantados)
+
+┌─────┬───────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id  │ name          │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├─────┼───────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1   │ cluster       │ default     │ 1.0.0   │ cluster │ 23288    │ 23s    │ 0    │ online    │ 0%       │ 15.5mb   │ nicolas  │ enabled  │
+│ 2   │ cluster       │ default     │ 1.0.0   │ cluster │ 19840    │ 22s    │ 0    │ online    │ 0%       │ 22.0mb   │ nicolas  │ enabled  │
+│ 3   │ cluster       │ default     │ 1.0.0   │ cluster │ 20360    │ 22s    │ 0    │ online    │ 0%       │ 17.6mb   │ nicolas  │ enabled  │
+│ 4   │ cluster       │ default     │ 1.0.0   │ cluster │ 10680    │ 22s    │ 0    │ online    │ 0%       │ 16.3mb   │ nicolas  │ enabled  │
+│ 0   │ servidorr2    │ default     │ 1.0.0   │ fork    │ 11372    │ 8m     │ 0    │ online    │ 0%       │ 19.6mb   │ nicolas  │ enabled  
+
+
+
+pm2 delete 0 4 3 2 1
+│ id  │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching 
+
+
+
+
+                                                    forever
+
+iniciar servidor : forever start server.js 8081
+
+listar los pocesos : forever list
+
+info:    Forever processes running
+data:        uid  command                            script                                                    forever pid   id logfile                            uptime       
+data:    [0] P_in "C:\Program Files\nodejs\node.exe" C:\Users\nicolas\OneDrive\Escritorio\faker\server.js 8081 22284   21648    C:\Users\nicolas\.forever\P_in.log 0:0:0:40.268 
+data:    [1] __tX "C:\Program Files\nodejs\node.exe" C:\Users\nicolas\OneDrive\Escritorio\faker\server.js 3000 13260   24200    C:\Users\nicolas\.forever\__tX.log 0:0:0:22.001 
+    
+
+finalizar un servidor : forever stop 1
+
+info:    Forever stopped process:
+    uid  command                            script                                                    forever pid   id logfile                            uptime
+[0] __tX "C:\Program Files\nodejs\node.exe" C:\Users\nicolas\OneDrive\Escritorio\faker\server.js 3000 13260   24200    C:\Users\nicolas\.forever\__tX.log 0:0:3:39.11699999999999
+
+finalizar todos los procesos : forever stopall
+info:    No forever processes running
