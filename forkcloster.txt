@@ -1,11 +1,14 @@
-pm2 
-modo closter 
+ nodemon server  8085 cluster    
+ 
+                                         pm2 
+modo cluster 
 iniciar servidor :pm2 start server.js --name="cluster" --watch -i max -- 8080
 
 
 
 
-modo fork 
+
+                                        modo fork 
 iniciar servidor:pm2 start server.js --name="servidorr2" --watch -- 8080
 pm2 list (listar los pid levantados)
 

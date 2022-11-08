@@ -16,7 +16,7 @@ import { normalize , schema } from 'normalizr';
 import {usuarioMongo} from './src/daos/session/sesiones.js';
 import { fork } from 'child_process';
 import {config} from './src/utils/confirfMongo.js'
-
+import {cpus} from 'os'
 dotenv.config()
 
 const UsuarioBD = [];
@@ -31,6 +31,7 @@ import passport from 'passport';
 import {Strategy} from "passport-local";
 import minimist from 'minimist';
 import { ConnectionPoolClosedEvent } from 'mongodb';
+import cluster from 'cluster';
 
 
 
@@ -305,11 +306,25 @@ socket.on('mensajeNuevo', async mensaje =>{
    //let args = minimist(process.argv[2], options)
 //|| 8080;
 const PORT = parseInt(process.argv[2]) || 8080;
+const modo = process.argv[3] == 'cluster';
+
+if (modo & cluster.isPrimary){
+    const CPUScantidad= cpus().length
+    for (let i = 0; i < CPUScantidad; i++) {
+        cluster.fork()
+    }
+cluster.on('terminar', worker =>{
+    console.log('worker', worker.process.pid)
+    cluster.fork()
+})
+}else {
+
    /* servidores */
 
 const  server = httpServer.listen(PORT, () =>{
     console.log(`servidor ${server.address().port}`)
-    console.log(`servidor ${server.address().port}, pid ${process.pid}`)
+    console.log(`servidor ${server.address().port}, pid ${process.pid} , ${modo}` )
 });
 
 server.on('error', err=>console.log(`error en servidor:${err}`));
+}
