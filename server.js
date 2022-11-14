@@ -17,6 +17,10 @@ import {usuarioMongo} from './src/daos/session/sesiones.js';
 import { fork } from 'child_process';
 import {config} from './src/utils/confirfMongo.js'
 import {cpus} from 'os'
+import cluster from 'cluster';
+import { logger } from './src/utils/log4js/logger.config.js';
+import compression from 'compression';
+
 dotenv.config()
 
 const UsuarioBD = [];
@@ -30,8 +34,7 @@ const forkedProcess = fork('./src/forkCalculo.js')
 import passport from 'passport';
 import {Strategy} from "passport-local";
 import minimist from 'minimist';
-import { ConnectionPoolClosedEvent } from 'mongodb';
-import cluster from 'cluster';
+
 
 
 
@@ -107,12 +110,12 @@ async function MongoBaseDatos (){
     try{
         
         const conn = await mongoose.connect(strConn, config.db.options);
-        console.log( `conectados en mongo`)
+        logger.info( `conectados en mongo`)
 
 
     }
     catch(error){
-        console.log(error)
+        logger.error(error)
     }
 }
 MongoBaseDatos() 
@@ -163,8 +166,30 @@ const normalizado = (mensajeconid) =>normalize(mensajeconid, schemaMensajesEnvia
 faker.locale = 'es'
 
 /*rutas */
-app.get('/info', (req, res) =>{ 
+const PORT = parseInt(process.argv[2]) || 8080;
+const modo = process.argv[3] == 'CLUSTER';
 
+if (modo && cluster.isPrimary){
+    const CPUScantidad= cpus().length
+    console.log(`Número de procesadores: ${CPUScantidad}`)
+    console.log(`PID MASTER ${process.pid}`)
+
+
+    for (let i = 0; i < CPUScantidad; i++) {
+        cluster.fork()
+    }
+
+    cluster.on('exit', worker => {
+        console.log('Worker', worker.process.pid, 'died', new Date().toLocaleString())
+        cluster.fork()
+    })
+
+}else {
+
+
+app.get('/info',compression(),(req, res) =>{ 
+const {url , method} = req
+logger.info(` direccion:${url} method: ${method}`)
 const datos ={ 
     ruta :process.cwd(),
     idProcess:process.pid,
@@ -183,6 +208,8 @@ const datos ={
 
 
 app.get('/api/random', (req,res)=>{
+    const {url , method} = req
+logger.info(` direccion:${url} method: ${method}`)
 const cantidadvalor = req.query.cant
             forkedProcess.send(cantidadvalor)
      
@@ -201,16 +228,22 @@ const cantidadvalor = req.query.cant
 
 
 app.get('/' , (req, res) =>{
+    const {url , method} = req
+logger.info(` direccion:${url} method: ${method}`)
     res.redirect('/login')
 })
 
 app.get('/register', (req, res )=>{
-
+    const {url , method} = req
+    logger.info(` direccion:${url} method: ${method}`)
     res.render( 'formularioinicio.hbs'  )
 })
 
 
 app.post('/register',async (req, res )=>{
+    const {url , method} = req
+logger.info(` direccion:${url} method: ${method}`)
+
   const {nombre , password} = req.body;
 
   const nuevoUsuario = usuarioMongo.find(usuario => usuario.nombre == nombre);
@@ -226,12 +259,15 @@ app.post('/register',async (req, res )=>{
 })
 
 app.get('/register-error', (req, res) => {
+    const {url , method} = req
+logger.info(` direccion:${url} method: ${method}`)
 res.render('errorsesion.hbs')
 })
 
 
 app.get('/login', (req, res )=>{
-
+    const {url , method} = req
+    logger.info(` direccion:${url} method: ${method}`)
     res.render( 'login.hbs'  )
 })
 app.post('/login', passport.authenticate('local', {successRedirect:'/api/productos-test', failureMessage:'/login'}))
@@ -243,7 +279,8 @@ app.get('/login-error', (req, res) => {
 
 
 app.get('/api/productos-test',aut, async (req, res)=>{
- 
+    const {url , method} = req
+    logger.info(` direccion:${url} method: ${method}`)
    const cantidad = 5
    const productos =[]
    for (let i=1; i<=cantidad; i++) {    
@@ -261,15 +298,29 @@ app.get('/api/productos-test',aut, async (req, res)=>{
 })
 
 app.post('/personas', aut, async (req, res)=>{
+    const {url , method} = req
+logger.info(` direccion:${url} method: ${method}`)
    await DB_MENSAJES.save(req.body);
     res.redirect('/api/productos-test');
 });
 
 app.get('/logout', (req, res)=> {
+    const {url , method} = req
+logger.info(` direccion:${url} method: ${method}`)
     req.logOut(err => {
         res.redirect('/');
     });
 })
+
+app.get( '*', (req, res) =>{
+    const {url , method} = req
+    logger.warn(` direccion:${url} method: ${method}`)
+    res.send( 'ruta inexistente')
+})
+app.listen(PORT, err => {
+    if (!err) console.log(`Servidor express escuchando en el puerto ${PORT} - PID WORKER ${process.pid}`)
+})
+}
 
 
 /*-------------------socket----------------*/
@@ -305,26 +356,13 @@ socket.on('mensajeNuevo', async mensaje =>{
    //let options= { alias:{modo: 'm', p:'puerto', d: 'debug'}, default :{ puerto :'8080'}};
    //let args = minimist(process.argv[2], options)
 //|| 8080;
-const PORT = parseInt(process.argv[2]) || 8080;
-const modo = process.argv[3] == 'cluster';
 
-if (modo & cluster.isPrimary){
-    const CPUScantidad= cpus().length
-    for (let i = 0; i < CPUScantidad; i++) {
-        cluster.fork()
-    }
-cluster.on('terminar', worker =>{
-    console.log('worker', worker.process.pid)
-    cluster.fork()
-})
-}else {
 
    /* servidores */
 
-const  server = httpServer.listen(PORT, () =>{
-    console.log(`servidor ${server.address().port}`)
-    console.log(`servidor ${server.address().port}, pid ${process.pid} , ${modo}` )
+/*const  server = httpServer.listen(PORT, () =>{
+    logger.info(`servidor ${server.address().port}`)
+    logger.info(`servidor ${server.address().port}, pid ${process.pid} , ${modo}` )
 });
 
-server.on('error', err=>console.log(`error en servidor:${err}`));
-}
+server.on('error', err=>logger.error(`error en servidor:${err}`));*/
